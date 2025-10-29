@@ -1,108 +1,159 @@
 package com.example.demo.controller;
 
-import java.util.Iterator;
-
-import com.example.demo.repository.Datosjuego;
 import com.example.demo.model.Habilidad;
 import com.example.demo.model.Personaje;
+import com.example.demo.model.PersonajeHabilidad;
+import com.example.demo.repository.HabilidadRepository;
+import com.example.demo.repository.PersonajeHabilidadRepository;
+import com.example.demo.repository.PersonajeRepository;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.Map;
 
-import org.apache.catalina.connector.Response;
 @RestController
 @RequestMapping("/api/personajes")
 public class PersonajeController {
 
+    @Autowired
+    private PersonajeRepository personajeRepository;
+    
+    @Autowired
+    private HabilidadRepository habilidadRepository;
+    
+    @Autowired
+    private PersonajeHabilidadRepository personajeHabilidadRepository;
+
+    // GET /personajes - Listar todos los personajes
     @GetMapping
-    public List<Personaje> obtenerPersonajes(@RequestParam(required = false) String nombre,
+    public List<Personaje> obtenerPersonajes(
+            @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String tipo) {
+        
         if (nombre != null && !nombre.isBlank()) {
-            String q = nombre.toLowerCase();
-            return Datosjuego.PERSONAJES.stream()
-                    .filter(p -> p.getNombre() != null && p.getNombre().toLowerCase().contains(q))
-                    .collect(Collectors.toList());
+            return personajeRepository.findByNombreContainingIgnoreCase(nombre);
         }
         if (tipo != null && !tipo.isBlank()) {
-            String t = tipo.toLowerCase();
-            return Datosjuego.PERSONAJES.stream()
-                    .filter(p -> p.getTipo() != null && p.getTipo().toLowerCase().contains(t))
-                    .collect(Collectors.toList());
+            return personajeRepository.findByTipoContainingIgnoreCase(tipo);
         }
-        return Datosjuego.PERSONAJES;
+        return personajeRepository.findAll();
     }
 
+    // GET /personajes/{id} - Obtener personaje por ID con sus habilidades
     @GetMapping("/{id}")
-    public ResponseEntity<Personaje> obtenerPorId(@PathVariable int id) {
-        return Datosjuego.PERSONAJES.stream()
-                .filter(p -> p.getId() == id)
-                .findFirst()
+    public ResponseEntity<Personaje> obtenerPorId(@PathVariable Long id) {
+        return personajeRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // *Añadir este POST para enseñarle a mi programita como hacer un POST porque no
-    // sabe */
+    // POST /personajes - Crear nuevo personaje
     @PostMapping
     public ResponseEntity<Personaje> crearPersonaje(@RequestBody Personaje personaje) {
-        Datosjuego.PERSONAJES.add(personaje);
-        return ResponseEntity.ok(personaje);
+        Personaje nuevoPersonaje = personajeRepository.save(personaje);
+        return ResponseEntity.ok(nuevoPersonaje);
     }
 
+    // PUT /personajes/{id} - Actualizar personaje parcialmente
     @PutMapping("/{id}")
-    public ResponseEntity<Personaje> actualizarParcial(@PathVariable int id,
+    public ResponseEntity<Personaje> actualizarParcial(
+            @PathVariable Long id,
             @RequestBody Map<String, Object> actualizaciones) {
-        for (Personaje personaje : Datosjuego.PERSONAJES) {
-            if (personaje.getId() == id) {
-                for (Map.Entry<String, Object> entry : actualizaciones.entrySet()) {
-                    switch (entry.getKey()) {
-                        case "nombre":
-                            personaje.setNombre((String) entry.getValue());
-                            break;
-                        case "tipo":
-                            personaje.setTipo((String) entry.getValue());
-                            break;
-                        case "descripcion":
-                            personaje.setDescripcion((String) entry.getValue());
-                            break;
-                        case "ataque":
-                            personaje.setAtaque(((Number) entry.getValue()).intValue());
-                            break;
-                        case "defensa":
-                            personaje.setDefensa(((Number) entry.getValue()).intValue());
-                            break;
-                        case "estamina":
-                            personaje.setEstamina(((Number) entry.getValue()).intValue());
-                            break;
-                        case "habilidades":
-                            personaje.setHabilidades((List<Integer>) entry.getValue());
-                            break;
-                        // Puedes agregar más campos aquí si lo necesitas
-                    }
-                }
-                return ResponseEntity.ok(personaje);
-            }
+        
+        return personajeRepository.findById(id)
+                .map(personaje -> {
+                    actualizaciones.forEach((key, value) -> {
+                        switch (key) {
+                            case "nombre":
+                                personaje.setNombre((String) value);
+                                break;
+                            case "tipo":
+                                personaje.setTipo((String) value);
+                                break;
+                            case "descripcion":
+                                personaje.setDescripcion((String) value);
+                                break;
+                            case "ataque":
+                                personaje.setAtaque(((Number) value).intValue());
+                                break;
+                            case "defensa":
+                                personaje.setDefensa(((Number) value).intValue());
+                                break;
+                            case "estamina":
+                                personaje.setEstamina(((Number) value).intValue());
+                                break;
+                        }
+                    });
+                    return ResponseEntity.ok(personajeRepository.save(personaje));
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // DELETE /personajes/{id} - Eliminar personaje
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarPersonaje(@PathVariable Long id) {
+        if (personajeRepository.existsById(id)) {
+            personajeRepository.deleteById(id);
+            return ResponseEntity.ok().build();
         }
         return ResponseEntity.notFound().build();
     }
 
-    //ahora vamos con un DELETE AQUI EN POSTMAN NO ES NECESARIO MANDAR NADA CON UNA URL Y EL ID DE LO QUE QUEREMOS ELIMINAR ES SUFICIENTE BIEN?
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Personaje> eliminarPersonaje(@PathVariable int id){
-        Iterator<Personaje> iterator=Datosjuego.PERSONAJES.iterator();
-        while (iterator.hasNext()){
-            Personaje personaje=iterator.next();
-            if (personaje.getId()==id){
-                iterator.remove();//aqui quitamos nuestro personaje de la lista
-                return ResponseEntity.ok().build();//devolvemos una respuesta exitosa sin contenido
-            }
-        }
-        return ResponseEntity.notFound().build();//si no encontramos el personaje devolvemos 404
+    // POST /personajes/{id}/habilidades - Agregar habilidad a personaje
+    @PostMapping("/{id}/habilidades")
+    public ResponseEntity<?> agregarHabilidad(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        
+        Long habilidadId = ((Number) body.get("habilidadId")).longValue();
+        int nivel = body.containsKey("nivel") ? ((Number) body.get("nivel")).intValue() : 1;
+        
+        return personajeRepository.findById(id)
+                .map(personaje -> {
+                    return habilidadRepository.findById(habilidadId)
+                            .map(habilidad -> {
+                                PersonajeHabilidad ph = new PersonajeHabilidad(personaje, habilidad, nivel);
+                                personajeHabilidadRepository.save(ph);
+                                return ResponseEntity.ok(Map.of(
+                                    "mensaje", "Habilidad agregada exitosamente",
+                                    "personajeHabilidad", ph
+                                ));
+                            })
+                            .orElseGet(() -> ResponseEntity.badRequest()
+                                .body(Map.of("error", "Habilidad no encontrada")));
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    // GET /personajes/{id}/habilidades - Listar habilidades de un personaje
+    @GetMapping("/{id}/habilidades")
+    public ResponseEntity<List<PersonajeHabilidad>> obtenerHabilidades(@PathVariable Long id) {
+        if (!personajeRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        List<PersonajeHabilidad> habilidades = personajeHabilidadRepository.findByPersonajeId(id);
+        return ResponseEntity.ok(habilidades);
+    }
+
+    // DELETE /personajes/{idPersonaje}/habilidades/{idHabilidad} - Quitar habilidad
+    @DeleteMapping("/{idPersonaje}/habilidades/{idHabilidad}")
+    public ResponseEntity<?> quitarHabilidad(
+            @PathVariable Long idPersonaje,
+            @PathVariable Long idHabilidad) {
+        
+        if (!personajeRepository.existsById(idPersonaje)) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        return personajeHabilidadRepository.findByPersonajeIdAndHabilidadId(idPersonaje, idHabilidad)
+                .map(ph -> {
+                    personajeHabilidadRepository.delete(ph);
+                    return ResponseEntity.ok(Map.of("mensaje", "Habilidad removida exitosamente"));
+                })
+                .orElseGet(() -> ResponseEntity.badRequest()
+                    .body(Map.of("error", "Relación personaje-habilidad no encontrada")));
+    }
 }
