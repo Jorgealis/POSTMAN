@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "habilidades")
 public class Habilidad {
@@ -29,6 +31,7 @@ public class Habilidad {
     
     // Relación Many-to-Many con Personaje (a través de tabla intermedia)
     @OneToMany(mappedBy = "habilidad", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore // Ignorar completamente esta lista para evitar recursión
     private List<PersonajeHabilidad> personajeHabilidades = new ArrayList<>();
     
     // Constructores

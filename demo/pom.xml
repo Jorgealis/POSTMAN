@@ -55,6 +55,13 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- JSON para procesamiento de respuestas en filtros -->
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20231013</version>
+		</dependency>
+
 		<!-- MySQL Driver (comentado por defecto, descomentar si usas MySQL) -->
 		<!--
 		<dependency>

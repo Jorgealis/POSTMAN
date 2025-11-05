@@ -2,6 +2,7 @@ package com.example.demo.model;
 
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "personaje_habilidad")
@@ -13,11 +14,12 @@ public class PersonajeHabilidad {
     
     @ManyToOne
     @JoinColumn(name = "personaje_id")
-    @JsonIgnore // Evita recursión infinita
+    @JsonIgnore // Evita la recursión infinita
     private Personaje personaje;
     
     @ManyToOne
     @JoinColumn(name = "habilidad_id")
+    @JsonIgnoreProperties("personajeHabilidades") // Ignora la lista de personajeHabilidades en Habilidad
     private Habilidad habilidad;
     
     @Column(nullable = false)

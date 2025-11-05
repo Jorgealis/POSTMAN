@@ -138,6 +138,37 @@ public class PersonajeController {
         return ResponseEntity.ok(habilidades);
     }
 
+    @GetMapping("/{idPersonaje}/habilidades/{idHabilidad}")
+public ResponseEntity<?> obtenerHabilidadEspecifica(
+        @PathVariable Long idPersonaje,
+        @PathVariable Long idHabilidad) {
+    
+    return personajeHabilidadRepository.findByPersonajeIdAndHabilidadId(idPersonaje, idHabilidad)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.notFound().build());
+}
+
+// PUT /personajes/{idPersonaje}/habilidades/{idHabilidad} - Actualizar nivel
+@PutMapping("/{idPersonaje}/habilidades/{idHabilidad}")
+public ResponseEntity<?> actualizarNivelHabilidad(
+        @PathVariable Long idPersonaje,
+        @PathVariable Long idHabilidad,
+        @RequestBody Map<String, Object> body) {
+    
+    int nuevoNivel = ((Number) body.get("nivel")).intValue();
+    
+    return personajeHabilidadRepository.findByPersonajeIdAndHabilidadId(idPersonaje, idHabilidad)
+            .map(ph -> {
+                ph.setNivel(nuevoNivel);
+                personajeHabilidadRepository.save(ph);
+                return ResponseEntity.ok(Map.of(
+                    "mensaje", "Nivel de habilidad actualizado exitosamente",
+                    "personajeHabilidad", ph
+                ));
+            })
+            .orElseGet(() -> ResponseEntity.notFound().build());
+}
+
     // DELETE /personajes/{idPersonaje}/habilidades/{idHabilidad} - Quitar habilidad
     @DeleteMapping("/{idPersonaje}/habilidades/{idHabilidad}")
     public ResponseEntity<?> quitarHabilidad(
