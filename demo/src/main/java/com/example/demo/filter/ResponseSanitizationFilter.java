@@ -1,4 +1,4 @@
-package com.example.demo.filters;
+package com.example.demo.filter;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletResponse;

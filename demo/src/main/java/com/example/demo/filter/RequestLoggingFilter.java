@@ -1,4 +1,4 @@
-package com.example.demo.filters;
+package com.example.demo.filter;
 
 import com.example.demo.model.RequestLog;
 import com.example.demo.repository.RequestLogRepository;

@@ -19,6 +19,10 @@ public class Usuario {
     @Column(nullable = false, unique = true, length = 100)
     private String correo;
     
+    // NUEVO: Campo para roles
+    @Column(nullable = false, length = 20)
+    private String role = "USER"; // Por defecto es USER
+    
     // Relación One-to-One con Perfil
     @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private Perfil perfil;
@@ -31,6 +35,14 @@ public class Usuario {
         this.nombreUsuario = nombreUsuario;
         this.contrasena = contrasena;
         this.correo = correo;
+        this.role = "USER";
+    }
+    
+    public Usuario(String nombreUsuario, String contrasena, String correo, String role) {
+        this.nombreUsuario = nombreUsuario;
+        this.contrasena = contrasena;
+        this.correo = correo;
+        this.role = role;
     }
     
     // Getters y Setters
@@ -64,6 +76,14 @@ public class Usuario {
     
     public void setCorreo(String correo) {
         this.correo = correo;
+    }
+    
+    public String getRole() {
+        return role;
+    }
+    
+    public void setRole(String role) {
+        this.role = role;
     }
     
     public Perfil getPerfil() {
