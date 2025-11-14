@@ -1,6 +1,7 @@
 package com.example.demo.filter;
 
 import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -18,15 +19,25 @@ import org.json.JSONObject;
  * para ocultar detalles internos de la base de datos.
  */
 @Component
-@Order(2) // Se ejecuta después del RequestLoggingFilter
+@Order(2)
 public class ResponseSanitizationFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
+        
+        // NO aplicar sanitización a rutas de autenticación
+        String path = httpRequest.getRequestURI();
+        if (path.startsWith("/api/auth/") || path.startsWith("/h2-console")) {
+            chain.doFilter(request, response);
+            return;
+        }
+        
         ContentCachingResponseWrapper wrappedResponse = 
-            new ContentCachingResponseWrapper((HttpServletResponse) response);
+            new ContentCachingResponseWrapper(httpResponse);
         
         // Ejecutar la cadena de filtros y el controlador
         chain.doFilter(request, wrappedResponse);
@@ -91,7 +102,7 @@ public class ResponseSanitizationFilter implements Filter {
     private JSONObject removeIdAttributes(JSONObject jsonObject) {
         Iterator<String> keys = jsonObject.keys();
         
-        // Crear una lista de claves a eliminar (no se puede modificar durante la iteración)
+        // Crear una lista de claves a eliminar
         java.util.List<String> keysToRemove = new java.util.ArrayList<>();
         
         while (keys.hasNext()) {

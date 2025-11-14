@@ -32,7 +32,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response, 
                                     FilterChain filterChain)
             throws ServletException, IOException {
+        
         try {
+            // No procesar rutas públicas
+            String path = request.getRequestURI();
+            if (path.startsWith("/api/auth/") || path.startsWith("/h2-console") || path.equals("/error")) {
+                System.out.println("⚪ [JWT] Ruta pública detectada, omitiendo validación: " + path);
+                filterChain.doFilter(request, response);
+                return;
+            }
+            
             String jwt = parseJwt(request);
             
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
@@ -51,10 +60,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 
-                System.out.println("✓ [JWT] Usuario autenticado: " + username);
+                System.out.println("✅ [JWT] Usuario autenticado: " + username + " con roles: " + userDetails.getAuthorities());
+            } else if (jwt != null) {
+                System.err.println("❌ [JWT] Token inválido o expirado");
+            } else {
+                System.out.println("⚠️ [JWT] No se encontró token en la petición a: " + path);
             }
         } catch (Exception e) {
-            System.err.println("✗ [JWT] Error al procesar autenticación: " + e.getMessage());
+            System.err.println("❌ [JWT] Error al procesar autenticación: " + e.getMessage());
+            e.printStackTrace();
         }
         
         filterChain.doFilter(request, response);
@@ -67,7 +81,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String headerAuth = request.getHeader("Authorization");
         
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7);
+            String token = headerAuth.substring(7);
+            System.out.println("🔑 [JWT] Token extraído: " + token.substring(0, Math.min(20, token.length())) + "...");
+            return token;
         }
         
         return null;

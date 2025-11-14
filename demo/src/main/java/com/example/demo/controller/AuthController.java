@@ -44,19 +44,29 @@ public class AuthController {
         String username = loginRequest.get("username");
         String password = loginRequest.get("password");
         
+        System.out.println("🔐 [LOGIN] Intento de login para usuario: " + username);
+        
         try {
+            // Verificar que el usuario existe
+            Usuario usuario = usuarioRepository.findByNombreUsuario(username)
+                    .orElseThrow(() -> {
+                        System.err.println("❌ [LOGIN] Usuario no encontrado: " + username);
+                        return new RuntimeException("Usuario no encontrado");
+                    });
+            
+            System.out.println("✅ [LOGIN] Usuario encontrado: " + username + " con role: " + usuario.getRole());
+            
             // Autenticar al usuario
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(username, password));
+            
+            System.out.println("✅ [LOGIN] Autenticación exitosa para: " + username);
             
             SecurityContextHolder.getContext().setAuthentication(authentication);
             
             // Generar token JWT
             String jwt = jwtUtils.generateJwtToken(authentication);
-            
-            // Obtener información del usuario
-            Usuario usuario = usuarioRepository.findByNombreUsuario(username)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            System.out.println("✅ [LOGIN] Token JWT generado para: " + username);
             
             Map<String, Object> response = new HashMap<>();
             response.put("token", jwt);
@@ -66,12 +76,17 @@ public class AuthController {
             response.put("role", usuario.getRole());
             response.put("id", usuario.getId());
             
+            System.out.println("✅ [LOGIN] Login exitoso para: " + username);
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
+            System.err.println("❌ [LOGIN] Error en login: " + e.getMessage());
+            e.printStackTrace();
+            
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", "Credenciales inválidas");
             errorResponse.put("mensaje", "Usuario o contraseña incorrectos");
+            errorResponse.put("detalle", e.getMessage());
             return ResponseEntity.status(401).body(errorResponse);
         }
     }
@@ -87,13 +102,17 @@ public class AuthController {
         String password = signUpRequest.get("password");
         String role = signUpRequest.getOrDefault("role", "USER");
         
+        System.out.println("📝 [REGISTER] Intento de registro para: " + username);
+        
         // Validar que no exista el usuario
         if (usuarioRepository.existsByNombreUsuario(username)) {
+            System.err.println("❌ [REGISTER] Username ya existe: " + username);
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "El nombre de usuario ya existe"));
         }
         
         if (usuarioRepository.existsByCorreo(email)) {
+            System.err.println("❌ [REGISTER] Email ya existe: " + email);
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "El correo ya está registrado"));
         }
@@ -107,6 +126,7 @@ public class AuthController {
         );
         
         usuarioRepository.save(nuevoUsuario);
+        System.out.println("✅ [REGISTER] Usuario registrado exitosamente: " + username);
         
         Map<String, Object> response = new HashMap<>();
         response.put("mensaje", "Usuario registrado exitosamente");
@@ -125,6 +145,8 @@ public class AuthController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         
+        System.out.println("👤 [ME] Solicitando información de: " + username);
+        
         return usuarioRepository.findByNombreUsuario(username)
                 .map(usuario -> {
                     Map<String, Object> response = new HashMap<>();
@@ -135,5 +157,17 @@ public class AuthController {
                     return ResponseEntity.ok(response);
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+    
+    /**
+     * GET /api/auth/test - Endpoint de prueba público
+     */
+    @GetMapping("/test")
+    public ResponseEntity<?> test() {
+        System.out.println("🧪 [TEST] Endpoint de prueba accedido");
+        return ResponseEntity.ok(Map.of(
+            "mensaje", "API funcionando correctamente",
+            "timestamp", System.currentTimeMillis()
+        ));
     }
 }
